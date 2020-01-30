@@ -15,7 +15,14 @@ from kivy.uix.recycleview import RecycleView
 from kivy.core.window import Window
 import urllib.parse
 import certifi as cfi
+import os
+import ssl
+import unittest
+import urllib.request
 
+import certifi
+import requests
+from kivy.utils import platform
 
 # Create both screens. Please note the root.manager.current: this is how
 # you can control the ScreenManager from kv. Each screen has by default a
@@ -174,6 +181,7 @@ Builder.load_string("""
                 
 """)
 
+os.environ['SSL_CERT_FILE'] = certifi.where()    
 #------------------------------------------MENU-----------------------------------------------------
 class MenuScreen(Screen):
     pass
@@ -185,6 +193,8 @@ class DeleteScreen(Screen):
 
     def auth(self):
         print("Eliminando..")
+        
+        os.environ['SSL_CERT_FILE'] = certifi.where()  
         search_url = "https://bazarapi.herokuapp.com/Lamina"
         params = urllib.parse.urlencode({'id': str(self.ids.num.text)})
         headers = {'Content-type': 'application/x-www-form-urlencoded','Accept': 'text/plain'}
@@ -202,6 +212,8 @@ class SettingsScreen(Screen):
         super(SettingsScreen, self).__init__(**kwargs)
     def auth(self):
         print('Guardando..')
+        
+        os.environ['SSL_CERT_FILE'] = certifi.where()  
         search_url = "https://bazarapi.herokuapp.com/Lamina"
         params = urllib.parse.urlencode({'numero': str(self.ids.num.text), 
                                    'nombre': str(self.ids.nom.text), 
@@ -223,7 +235,9 @@ class UpdateScreen(Screen):
         super(UpdateScreen, self).__init__(**kwargs)
     def auth(self):
         print('Actualizando..')
+        os.environ['SSL_CERT_FILE'] = certifi.where()  
         search_url = "https://bazarapi.herokuapp.com/Lamina/"+self.ids.ide.text
+        
         params = urllib.parse.urlencode({'numero': str(self.ids.num.text), 
                                    'nombre': str(self.ids.nom.text), 
                                    'numero_seccion': self.ids.num_sec.text,
@@ -240,11 +254,11 @@ class UpdateScreen(Screen):
 class SeeScreen(Screen):
     def __init__(self, **kwargs):
         super(SeeScreen, self).__init__(**kwargs)
+        os.environ['SSL_CERT_FILE'] = certifi.where()  
         search_url = "https://bazarapi.herokuapp.com/Lamina?desde=0&limite=1000"
-        self.request = UrlRequest(search_url,on_success= self.res, ca_file=cfi.where(), verify=True)
-                        
+        self.request = UrlRequest(search_url,on_success= self.res, ca_file=cfi.where(), verify=True)              
 
-
+    
     def res(self,*args):
         lim = self.request.result['cuantos']
         laminas = self.request.result['laminas']
