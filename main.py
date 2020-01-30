@@ -14,7 +14,7 @@ from kivy.network.urlrequest import UrlRequest
 from kivy.uix.recycleview import RecycleView
 from kivy.core.window import Window
 import urllib.parse
-import requests
+import certifi as cfi
 
 
 # Create both screens. Please note the root.manager.current: this is how
@@ -22,7 +22,6 @@ import requests
 # property manager that gives you the instance of the ScreenManager used.
 Builder.load_string("""
 <MenuScreen>:
-
     GridLayout:
         cols:1
         row:2
@@ -47,7 +46,6 @@ Builder.load_string("""
             text: 'Salir'
             background_color:(255,0,0,1)
             on_release: app.stop()
-
 <SettingsScreen>:
     GridLayout:
         cols:2
@@ -85,8 +83,6 @@ Builder.load_string("""
             text: 'Regresar'
             background_color:(255,0,0,1) 
             on_press: root.manager.current = 'menu'
-
-
 <UpdateScreen>:
     GridLayout:
         cols:2
@@ -123,13 +119,12 @@ Builder.load_string("""
             id:stock
             multiline:False     
         Button:
-            text:'Actualizar'
+            text:'Guardar'
             on_press: root.auth()
         Button:
             text: 'Regresar'
             background_color:(255,0,0,1)
             on_press: root.manager.current = 'menu'
-
 <DeleteScreen>
     GridLayout:
         cols:2
@@ -163,7 +158,6 @@ Builder.load_string("""
             text: 'Regresar'
             background_color:(255,0,0,1)
             on_press: root.manager.current = 'menu'
-
 <SeeScreen>
     ScrollView:
         size_hint:(None, 1)
@@ -183,7 +177,7 @@ Builder.load_string("""
 #------------------------------------------MENU-----------------------------------------------------
 class MenuScreen(Screen):
     pass
-    
+
 #------------------------------------------DELETE-----------------------------------------------------
 class DeleteScreen(Screen):
     def __init__(self, **kwargs):
@@ -192,9 +186,13 @@ class DeleteScreen(Screen):
     def auth(self):
         print("Eliminando..")
         search_url = "https://bazarapi.herokuapp.com/Lamina"
-        params = {'id': str(self.ids.num.text)}
-        req = requests.delete(search_url, data=params)
-        print(req.text)
+        params = urllib.parse.urlencode({'id': str(self.ids.num.text)})
+        headers = {'Content-type': 'application/x-www-form-urlencoded','Accept': 'text/plain'}
+        self.req = UrlRequest(search_url, on_success=self.bug_posted, req_body=params,req_headers=headers,method="DELETE" , ca_file=cfi.where(), verify=True)
+
+
+    def bug_posted(self,*args):
+        print(self.req.result)
     pass
 
 
@@ -205,32 +203,37 @@ class SettingsScreen(Screen):
     def auth(self):
         print('Guardando..')
         search_url = "https://bazarapi.herokuapp.com/Lamina"
-        params = { 'numero': str(self.ids.num.text), 
+        params = urllib.parse.urlencode({'numero': str(self.ids.num.text), 
                                    'nombre': str(self.ids.nom.text), 
                                    'numero_seccion': self.ids.num_sec.text,
                                    'seccion': str(self.ids.sec.text), 
-                                   'stock': self.ids.stock.text}
-        req = requests.post(search_url, data=params)
-        print(req.url)
-        print(req.text)   
+                                   'stock': self.ids.stock.text})
+        headers = {'Content-type': 'application/x-www-form-urlencoded','Accept': 'text/plain'}
+        self.req = UrlRequest(search_url, on_success=self.bug_posted, req_body=params,req_headers=headers , ca_file=cfi.where(), verify=True)
+
+
+    def bug_posted(self,*args):
+        print(self.req.result)    
     pass
 
 #------------------------------------------PUT----------------------------------------------------
-    
+
 class UpdateScreen(Screen):
     def __init__(self, **kwargs):
         super(UpdateScreen, self).__init__(**kwargs)
     def auth(self):
         print('Actualizando..')
         search_url = "https://bazarapi.herokuapp.com/Lamina/"+self.ids.ide.text
-        
-        params = {'numero': str(self.ids.num.text), 
+        params = urllib.parse.urlencode({'numero': str(self.ids.num.text), 
                                    'nombre': str(self.ids.nom.text), 
                                    'numero_seccion': self.ids.num_sec.text,
                                    'seccion': str(self.ids.sec.text), 
-                                   'stock': self.ids.stock.text}
-        req = requests.put(search_url,data=params)
-        print(req.text)    
+                                   'stock': self.ids.stock.text})
+        headers = {'Content-type': 'application/x-www-form-urlencoded','Accept': 'text/plain'}
+        self.req = UrlRequest(search_url, on_success=self.bug_posted, req_body=params,req_headers=headers,method="PUT", ca_file=cfi.where(), verify=True)
+
+    def bug_posted(self,*args):
+        print(self.req.result)    
     pass
 
 #------------------------------------------GET-----------------------------------------------------
@@ -238,12 +241,16 @@ class SeeScreen(Screen):
     def __init__(self, **kwargs):
         super(SeeScreen, self).__init__(**kwargs)
         search_url = "https://bazarapi.herokuapp.com/Lamina?desde=0&limite=1000"
-        response = requests.get(search_url)
-        laminas = response.json()['laminas']
-        lim = response.json()['cuantos']
+        self.request = UrlRequest(search_url,on_success= self.res, ca_file=cfi.where(), verify=True)
+                        
+
+
+    def res(self,*args):
+        lim = self.request.result['cuantos']
+        laminas = self.request.result['laminas']
         self.root = ScrollView(size_hint=(1, .8), size=(Window.width, Window.height))
         layout = GridLayout(cols=5, spacing=10, size_hint_y=None)
-   
+
         self.root3 = ScrollView(size_hint=(1, 0.9), size=(Window.width, Window.height))
         layout3 = GridLayout(cols=5, spacing=10, size_hint_y=None)
         btn3 = Button(text="Nº", size_hint=[.1,None], height=40)
@@ -260,29 +267,33 @@ class SeeScreen(Screen):
         layout.bind(minimum_height=layout.setter('height'))
         for i in range(lim):
              btn = Button(text=laminas[i]["numero"], size_hint=[.1,None], height=40)
-           
+
              layout.add_widget(btn)
-             
+
              btn = Button(text=laminas[i]["nombre"], size_hint=[.8,None], height=40)
              layout.add_widget(btn)
-             
+
              btn = Button(text=str(laminas[i]["numero_seccion"]), size_hint=[.1,None], height=40)
              layout.add_widget(btn)
-             
+
              btn = Button(text=laminas[i]["seccion"], size_hint=[.8,None], height=40)
              layout.add_widget(btn)
-             
+
              btn = Button(text=str(laminas[i]["stock"]), size_hint=[.1,None], height=40)
              layout.add_widget(btn)
 
-        
+
+
+        #self.root2.add_widget(layout2)
+        #self.add_widget(self.root2)
+
         self.root3.add_widget(layout3)
         self.add_widget(self.root3)
-        
+
         self.root.add_widget(layout)
-        self.add_widget(self.root)
-           
-     
+        self.add_widget(self.root)        
+    pass
+
 # Create the screen manager
 sm = ScreenManager()
 sm.add_widget(MenuScreen(name='menu'))
@@ -298,4 +309,4 @@ class TestApp(App):
         return sm
 
 if __name__ == '__main__':
-    TestApp().run()
+    TestApp().run() 
