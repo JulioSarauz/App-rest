@@ -14,6 +14,7 @@ from kivy.network.urlrequest import UrlRequest
 from kivy.uix.recycleview import RecycleView
 from kivy.core.window import Window
 import urllib.parse
+import requests
 
 
 # Create both screens. Please note the root.manager.current: this is how
@@ -26,7 +27,7 @@ Builder.load_string("""
         cols:1
         row:2
         spacing:10
-        padding:[300,100,300,100]
+        padding:[100,100,100,100]
         Button:
             text: 'Ver todas las Láminas'
             on_press: root.manager.current = 'ver'
@@ -122,7 +123,7 @@ Builder.load_string("""
             id:stock
             multiline:False     
         Button:
-            text:'Guardar'
+            text:'Actualizar'
             on_press: root.auth()
         Button:
             text: 'Regresar'
@@ -191,13 +192,9 @@ class DeleteScreen(Screen):
     def auth(self):
         print("Eliminando..")
         search_url = "https://bazarapi.herokuapp.com/Lamina"
-        params = urllib.parse.urlencode({'id': str(self.ids.num.text)})
-        headers = {'Content-type': 'application/x-www-form-urlencoded','Accept': 'text/plain'}
-        self.req = UrlRequest(search_url, on_success=self.bug_posted, req_body=params,req_headers=headers,method="DELETE")
-        
-
-    def bug_posted(self,*args):
-        print(self.req.result)
+        params = {'id': str(self.ids.num.text)}
+        req = requests.delete(search_url, data=params)
+        print(req.text)
     pass
 
 
@@ -208,17 +205,14 @@ class SettingsScreen(Screen):
     def auth(self):
         print('Guardando..')
         search_url = "https://bazarapi.herokuapp.com/Lamina"
-        params = urllib.parse.urlencode({'numero': str(self.ids.num.text), 
+        params = { 'numero': str(self.ids.num.text), 
                                    'nombre': str(self.ids.nom.text), 
                                    'numero_seccion': self.ids.num_sec.text,
                                    'seccion': str(self.ids.sec.text), 
-                                   'stock': self.ids.stock.text})
-        headers = {'Content-type': 'application/x-www-form-urlencoded','Accept': 'text/plain'}
-        self.req = UrlRequest(search_url, on_success=self.bug_posted, req_body=params,req_headers=headers)
-        
-
-    def bug_posted(self,*args):
-        print(self.req.result)    
+                                   'stock': self.ids.stock.text}
+        req = requests.post(search_url, data=params)
+        print(req.url)
+        print(req.text)   
     pass
 
 #------------------------------------------PUT----------------------------------------------------
@@ -229,16 +223,14 @@ class UpdateScreen(Screen):
     def auth(self):
         print('Actualizando..')
         search_url = "https://bazarapi.herokuapp.com/Lamina/"+self.ids.ide.text
-        params = urllib.parse.urlencode({'numero': str(self.ids.num.text), 
+        
+        params = {'numero': str(self.ids.num.text), 
                                    'nombre': str(self.ids.nom.text), 
                                    'numero_seccion': self.ids.num_sec.text,
                                    'seccion': str(self.ids.sec.text), 
-                                   'stock': self.ids.stock.text})
-        headers = {'Content-type': 'application/x-www-form-urlencoded','Accept': 'text/plain'}
-        self.req = UrlRequest(search_url, on_success=self.bug_posted, req_body=params,req_headers=headers,method="PUT")
-        
-    def bug_posted(self,*args):
-        print(self.req.result)    
+                                   'stock': self.ids.stock.text}
+        req = requests.put(search_url,data=params)
+        print(req.text)    
     pass
 
 #------------------------------------------GET-----------------------------------------------------
@@ -246,20 +238,12 @@ class SeeScreen(Screen):
     def __init__(self, **kwargs):
         super(SeeScreen, self).__init__(**kwargs)
         search_url = "https://bazarapi.herokuapp.com/Lamina?desde=0&limite=1000"
-        self.request = UrlRequest(search_url, self.res)
-        
-        
-
-    def res(self,*args):
-        lim = self.request.result['cuantos']
-        laminas = self.request.result['laminas']
+        response = requests.get(search_url)
+        laminas = response.json()['laminas']
+        lim = response.json()['cuantos']
         self.root = ScrollView(size_hint=(1, .8), size=(Window.width, Window.height))
         layout = GridLayout(cols=5, spacing=10, size_hint_y=None)
-        
-        
-        
-        
-        
+   
         self.root3 = ScrollView(size_hint=(1, 0.9), size=(Window.width, Window.height))
         layout3 = GridLayout(cols=5, spacing=10, size_hint_y=None)
         btn3 = Button(text="Nº", size_hint=[.1,None], height=40)
@@ -290,11 +274,7 @@ class SeeScreen(Screen):
              
              btn = Button(text=str(laminas[i]["stock"]), size_hint=[.1,None], height=40)
              layout.add_widget(btn)
-             
-             
-        
-        #self.root2.add_widget(layout2)
-        #self.add_widget(self.root2)
+
         
         self.root3.add_widget(layout3)
         self.add_widget(self.root3)
